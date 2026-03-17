@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Space Invaders</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>html,body{height:100%;margin:0;background:#000}</style>
+</head>
+<body>
+
+  <div id="error-overlay" style="display:none;position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.85);color:#fff;padding:20px;z-index:9999;overflow:auto;font-family:monospace;white-space:pre-wrap;"></div>
+  <script>
+    function showError(msg) {
+      const el = document.getElementById('error-overlay');
+      el.style.display = 'block';
+      el.textContent = msg;
+      console.error(msg);
+    }
+    window.addEventListener('error', function (e) {
+      showError('Error: ' + (e && e.message ? e.message : String(e)) + '\n\n' + (e && e.filename ? e.filename + ':' + e.lineno + ':' + e.colno : '') + '\n\n' + (e && e.error && e.error.stack ? e.error.stack : 'no stack'));
+    });
+    window.addEventListener('unhandledrejection', function (ev) {
+      showError('UnhandledRejection: ' + (ev && ev.reason ? (ev.reason.stack || ev.reason) : ev));
+    });
+    setTimeout(() => {
+    }, 0);
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+
+  <script type="module" src="../src/main.js"></script>
+</body>
+</html>
