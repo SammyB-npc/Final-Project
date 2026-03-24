@@ -47,6 +47,91 @@ export default class GameScene extends Phaser.Scene {
 
     create() {
     console.log('GameScene.create entered');
+
+    // ── Space background ──────────────────────────────────────────────────
+    // Solid black base
+    this.add.rectangle(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH, SCREEN_HEIGHT, 0x000000).setDepth(-10);
+
+    // Galaxy nebula in the middle (layered oval gradients at a 45-degree tilt)
+    // Base ellipse is wide, then rotated so it appears both horizontal and vertical.
+    const gfx = this.add.graphics().setDepth(-9);
+    const cx = SCREEN_WIDTH / 2;
+    const cy = SCREEN_HEIGHT / 2;
+    const galaxyAngle = Phaser.Math.DegToRad(-45);
+    // Outer glow - deep purple/blue oval
+    for (let r = 160; r >= 10; r -= 10) {
+        const t = r / 160;
+        const alpha = (1 - t) * 0.18;
+        gfx.fillStyle(0x3a0a8e, alpha);
+        gfx.save();
+        gfx.translateCanvas(cx, cy);
+        gfx.rotateCanvas(galaxyAngle);
+        gfx.fillEllipse(0, 0, r * 3.2, r * 1.0);
+        gfx.restore();
+    }
+    // Brighter violet/pink core oval
+    for (let r = 70; r >= 2; r -= 4) {
+        const t = r / 70;
+        const alpha = (1 - t) * 0.35 + 0.05;
+        const color = Phaser.Display.Color.Interpolate.ColorWithColor(
+            { r: 120, g: 20,  b: 160 },
+            { r: 255, g: 180, b: 230 },
+            70, r
+        );
+        gfx.fillStyle(Phaser.Display.Color.GetColor(color.r, color.g, color.b), alpha);
+        gfx.save();
+        gfx.translateCanvas(cx, cy);
+        gfx.rotateCanvas(galaxyAngle);
+        gfx.fillEllipse(0, 0, r * 3.2, r * 1.0);
+        gfx.restore();
+    }
+    // Bright white-yellow centre
+    gfx.fillStyle(0xffffee, 0.55);
+    gfx.save();
+    gfx.translateCanvas(cx, cy);
+    gfx.rotateCanvas(galaxyAngle);
+    gfx.fillEllipse(0, 0, 32, 10);
+    gfx.restore();
+
+    const dustGfx = this.add.graphics().setDepth(-8);
+    const rng = new Phaser.Math.RandomDataGenerator(['space-seed']);
+    for (let i = 0; i < 120; i++) {
+        const angle = rng.realInRange(0, Math.PI * 2);
+        const dist  = rng.realInRange(10, 165);
+        const localX = Math.cos(angle) * dist * 1.6;
+        const localY = Math.sin(angle) * dist * 0.5;
+        const px = cx + (localX * Math.cos(galaxyAngle) - localY * Math.sin(galaxyAngle));
+        const py = cy + (localX * Math.sin(galaxyAngle) + localY * Math.cos(galaxyAngle));
+        const sz = rng.realInRange(0.5, 2.2);
+        const alpha = rng.realInRange(0.15, 0.7);
+        dustGfx.fillStyle(0xffffff, alpha);
+        dustGfx.fillCircle(px, py, sz);
+    }
+
+    // Stars – static layer
+    const starGfx = this.add.graphics().setDepth(-7);
+    for (let i = 0; i < 220; i++) {
+        const sx = rng.integerInRange(0, SCREEN_WIDTH);
+        const sy = rng.integerInRange(0, SCREEN_HEIGHT);
+        const size = rng.realInRange(0.4, 1.8);
+        const alpha = rng.realInRange(0.4, 1.0);
+        starGfx.fillStyle(0xffffff, alpha);
+        starGfx.fillCircle(sx, sy, size);
+    }
+
+    // Twinkling stars – a handful that animate
+    this._twinkleStars = [];
+    for (let i = 0; i < 30; i++) {
+        const sx = rng.integerInRange(0, SCREEN_WIDTH);
+        const sy = rng.integerInRange(0, SCREEN_HEIGHT);
+        const baseAlpha = rng.realInRange(0.5, 1.0);
+        const speed     = rng.realInRange(0.8, 2.5);
+        // draw as small Graphics objects so we can re-draw each frame
+        const tg = this.add.graphics().setDepth(-6);
+        this._twinkleStars.push({ gfx: tg, x: sx, y: sy, baseAlpha, speed, phase: rng.realInRange(0, Math.PI * 2) });
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
         // groups
         this.enemies = this.add.group();
         this.bullets = this.add.group();
@@ -136,6 +221,17 @@ export default class GameScene extends Phaser.Scene {
         if (this.gameOver) return;
 
         const dt = delta / 1000;
+
+        // Animate twinkling stars
+        if (this._twinkleStars) {
+            const t = time / 1000;
+            this._twinkleStars.forEach(s => {
+                const alpha = s.baseAlpha * (0.4 + 0.6 * Math.abs(Math.sin(t * s.speed + s.phase)));
+                s.gfx.clear();
+                s.gfx.fillStyle(0xffffff, alpha);
+                s.gfx.fillCircle(s.x, s.y, 1.5);
+            });
+        }
 
         // player movement and shooting
         if (this.player) {
@@ -294,8 +390,6 @@ export default class GameScene extends Phaser.Scene {
                         if (hit) {
                             if (b.destroy) b.destroy();
                             if (pu.destroy) pu.destroy();
-                            // when collected, cancel further power-ups this round
-                            if (this.powerUpTimer) { this.powerUpTimer.remove(false); this.powerUpTimer = null; }
                             // handle power-up types
                             if (pu.powerType === 'blue') {
                                 console.log('Blue power-up collected: firing semi-circle');
@@ -307,8 +401,8 @@ export default class GameScene extends Phaser.Scene {
                                 if (this.player) this.player.doubleShot = true;
                                 console.log('Power-up collected: doubleShot enabled for round', this.round);
                             }
-                            // ensure count flags so spawnPowerUpForRound doesn't spawn more this round
-                            this.powerUpsSpawnedThisRound = this.powerUpsTarget;
+                            // do not cancel the round power-up schedule here;
+                            // rounds after 5 should still spawn two total per round
                         }
                     });
                 });
@@ -416,9 +510,10 @@ export default class GameScene extends Phaser.Scene {
                             } else {
                                 this.waveTimer = this.time.addEvent({ delay: 600, callback: this.spawnEnemyForWave, callbackScope: this, loop: true });
                             }
-                            // configure per-round power-ups: limit to exactly 1 per round
+                            // configure per-round power-ups:
+                            // rounds 1-5 => 1 power-up, rounds 6+ => 2 power-ups
                             if (this.powerUpTimer) { this.powerUpTimer.remove(false); this.powerUpTimer = null; }
-                            this.powerUpsTarget = 1;
+                            this.powerUpsTarget = this.round > 5 ? 2 : 1;
                             this.powerUpsSpawnedThisRound = 0;
                             this.powerUpTimer = this.time.addEvent({ delay: 900, callback: this.spawnPowerUpForRound, callbackScope: this, loop: true });
                         }, [], this);
@@ -581,7 +676,7 @@ export default class GameScene extends Phaser.Scene {
                         this.powerUpsSpawnedThisRound += 1;
                         const x = Phaser.Math.Between(60, SCREEN_WIDTH - 60);
                         const y = Phaser.Math.Between(-40, -10);
-                            // choose exactly one power-up type for this round: either yellow (double-shot) or blue (one-time semicircle)
+                            // choose a random type for each spawn: yellow or blue (can repeat)
                             const chooseBlue = Phaser.Math.Between(0, 1) === 0; // 50/50
                             if (chooseBlue) {
                                 // create blue power-up texture
