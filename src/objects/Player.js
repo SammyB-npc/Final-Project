@@ -4,20 +4,19 @@ class Player {
         this.sprite = scene.physics.add.sprite(x, y, 'player');
         this.sprite.setCollideWorldBounds(true);
     this.health = 3;
-    this.speed = 470;
+    this.speed = 485;
     this.fullMovement = false;
     }
 
-    // move(left, right, up, down)
     move(left, right, up, down) {
         if (this.fullMovement) {
-        // full 2D movement using arrow keys
+       
             const vx = (right ? 1 : 0) - (left ? 1 : 0);
             const vy = (down ? 1 : 0) - (up ? 1 : 0);
             this.sprite.setVelocityX(vx * this.speed);
             this.sprite.setVelocityY(vy * this.speed);
         } else {
-            // only horizontal movement
+
             if (left) {
                 this.sprite.setVelocityX(-this.speed);
             } else if (right) {
@@ -25,7 +24,7 @@ class Player {
             } else {
                 this.sprite.setVelocityX(0);
             }
-            // ensure vertical velocity is zero in horizontal-only mode
+
             this.sprite.setVelocityY(0);
         }
     }
@@ -38,19 +37,18 @@ class Player {
     disableFullMovement() {
         if (!this.fullMovement) return;
         this.fullMovement = false;
-    // reset vertical velocity and reposition handled by scene when needed
-        // reset vertical velocity and reposition handled by scene when needed
+
     }
 
     shoot() {
-            // ensure we have a triangle texture available
+   
             const key = 'triangle-bullet';
             if (!this.scene.textures.exists(key)) {
                 const size = 24;
                 const g = this.scene.make.graphics({ x: 0, y: 0, add: false });
                 g.fillStyle(0xffff66, 1);
                 g.beginPath();
-                // triangle pointing up
+           
                 g.moveTo(size/2, 0);
                 g.lineTo(size, size);
                 g.lineTo(0, size);
@@ -60,12 +58,12 @@ class Player {
                 g.destroy();
             }
 
-            // helper to create a bullet with optional horizontal velocity
+       
             const makeBullet = (offsetX = 0, vx = 0) => {
                 const b = this.scene.add.image(this.sprite.x + offsetX, this.sprite.y - 20, key);
                 b.setOrigin(0.5, 0.5);
-                b._vy = -700; // base upward speed
-                b._vx = vx; // horizontal component for angled shot
+                b._vy = -700; // 
+                b._vx = vx; // 
                 b._damage = 1;
                 b.setDepth(5);
                 this.scene.bullets.add(b);
@@ -73,7 +71,7 @@ class Player {
             };
 
             if (this.doubleShot) {
-                // two bullets with a slightly tighter angle/spread
+  
                 makeBullet(-5, -40);
                 makeBullet(5, 40);
                 console.log('Player.shoot -> double triangle bullets');
@@ -83,12 +81,12 @@ class Player {
             }
     }
 
-    // fire a single semi-circle spread of bullets upward (one-time)
-    shootSemiCircleOnce(count = 11) {
+    
+    shootSemiCircleOnce(count = 13) {
         const scene = this.scene;
         const key = 'triangle-bullet';
         if (!scene.textures.exists(key)) {
-            // create same triangle if missing
+    
             const size = 24;
             const g = scene.make.graphics({ x: 0, y: 0, add: false });
             g.fillStyle(0xffff66, 1);

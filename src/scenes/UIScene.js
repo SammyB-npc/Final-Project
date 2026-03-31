@@ -36,7 +36,7 @@ export default class UIScene extends Phaser.Scene {
     }
 
     gameOver() {
-        this.gameOverText.setText('Game Over');
+        this.gameOverText.setText('MISSION FALIED');
         this.scene.pause('GameScene');
     }
 

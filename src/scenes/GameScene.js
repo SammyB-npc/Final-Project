@@ -202,23 +202,38 @@ export default class GameScene extends Phaser.Scene {
     }
 
         togglePause() {
+            if (this.gameOver) return;
+
             this.paused = !this.paused;
+
+            const setTimerPaused = (timer, paused) => {
+                if (timer) timer.paused = paused;
+            };
+
             if (this.paused) {
                 if (this.physics && this.physics.world) this.physics.world.pause();
-                if (this.waveTimer) this.waveTimer.paused = true;
-                this.pauseText.setText('RESUME');
+                setTimerPaused(this.waveTimer, true);
+                setTimerPaused(this.powerUpTimer, true);
+                setTimerPaused(this.bossShootTimer, true);
+                setTimerPaused(this.bossChaseTimer, true);
+                if (this.tweens && this.tweens.pauseAll) this.tweens.pauseAll();
+                if (this.pauseText) this.pauseText.setText('RESUME');
                 // show centered paused label
                 if (!this.pausedLabel) this.pausedLabel = this.add.text(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 'PAUSED', { font: '48px monospace', fill: '#ffffff' }).setOrigin(0.5).setDepth(300);
             } else {
                 if (this.physics && this.physics.world) this.physics.world.resume();
-                if (this.waveTimer) this.waveTimer.paused = false;
-                this.pauseText.setText('PAUSE');
+                setTimerPaused(this.waveTimer, false);
+                setTimerPaused(this.powerUpTimer, false);
+                setTimerPaused(this.bossShootTimer, false);
+                setTimerPaused(this.bossChaseTimer, false);
+                if (this.tweens && this.tweens.resumeAll) this.tweens.resumeAll();
+                if (this.pauseText) this.pauseText.setText('PAUSE');
                 if (this.pausedLabel) { this.pausedLabel.destroy(); this.pausedLabel = null; }
             }
         }
 
     update(time, delta) {
-        if (this.gameOver) return;
+        if (this.gameOver || this.paused) return;
 
         const dt = delta / 1000;
 
@@ -566,11 +581,11 @@ export default class GameScene extends Phaser.Scene {
                     const cur = this.score || 0;
                     const high = Math.max(prev, cur);
                     window.localStorage.setItem(key, String(high));
-                    const txt = `GAME OVER\nScore: ${cur}\nHighscore: ${high}`;
+                    const txt = `MISSION FAILED\nScore: ${cur}\nHighscore: ${high}`;
                     this.add.text(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, txt, { font: '28px monospace', fill: '#ffdddd', align: 'center' }).setOrigin(0.5).setDepth(400);
                 } catch (e) {
                     console.warn('Could not persist highscore', e);
-                    this.add.text(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, `GAME OVER\nScore: ${this.score}`, { font: '28px monospace', fill: '#ffdddd', align: 'center' }).setOrigin(0.5).setDepth(400);
+                    this.add.text(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, `MISSION FAILED\nScore: ${this.score}`, { font: '28px monospace', fill: '#ffdddd', align: 'center' }).setOrigin(0.5).setDepth(400);
                 }
             }
 
@@ -589,9 +604,9 @@ export default class GameScene extends Phaser.Scene {
             if (sprite) {
                 // scale up visually and give health
                 if (sprite.setScale) sprite.setScale(3);
-                sprite._health = 20; // requires many hits
-                    sprite._vx = 80; // move across the top
-                    sprite._vy = 30; // slow descent into visible area
+                sprite._health = 20;
+                    sprite._vx = 80; 
+                                        sprite._vy = 30; 
                     sprite.isBoss = true;
                 this.enemies.add(sprite);
                 console.log('spawnBoss ->', { x: sprite.x, y: sprite.y, _vx: sprite._vx, _vy: sprite._vy, health: sprite._health });
@@ -600,7 +615,6 @@ export default class GameScene extends Phaser.Scene {
                 // boss will shoot periodically while alive
                 if (this.bossShootTimer) { this.bossShootTimer.remove(false); this.bossShootTimer = null; }
                 this.bossShootTimer = this.time.addEvent({ delay: 900, callback: this.shootBossBullet, callbackScope: this, loop: true });
-                // after a delay, enable chase mode and grant player full 2D movement (arrow keys)
                 if (this.bossChaseTimer) { this.bossChaseTimer.remove(false); this.bossChaseTimer = null; }
                 this.bossChaseTimer = this.time.delayedCall(4500, () => {
                     this.bossIsChasing = true;

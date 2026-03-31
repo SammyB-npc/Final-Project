@@ -7,9 +7,11 @@ export default class TitleScene extends Phaser.Scene {
         const centerX = this.cameras.main.centerX;
         const centerY = this.cameras.main.centerY;
 
-        // Starry background for the title screen.
-        this.add.rectangle(centerX, centerY, this.scale.width, this.scale.height, 0x000814);
+        this.add.rectangle(centerX, centerY, this.scale.width, this.scale.height, 0x000000);
 
+        const border = this.add.graphics();
+        border.lineStyle(3, 0xffffff, 1);
+        border.strokeRect(0, 0, this.scale.width, this.scale.height);
         const stars = this.add.graphics();
         for (let i = 0; i < 180; i++) {
             const x = Phaser.Math.Between(0, this.scale.width);
@@ -20,22 +22,22 @@ export default class TitleScene extends Phaser.Scene {
             stars.fillCircle(x, y, size);
         }
 
-        this.add.text(centerX, centerY - 90, 'Galactic fighter', {
+        this.add.text(centerX, centerY - 90, 'GALACTIC FIGHTER', {
             font: '64px monospace',
-            fill: '#ffffff',
-            stroke: '#3a7bd5',
+            fill: '#39ff14',
+            stroke: '#0a3d0a',
             strokeThickness: 6
         }).setOrigin(0.5);
 
         const playButton = this.add.text(centerX, centerY + 40, 'PLAY', {
             font: '38px monospace',
-            fill: '#ffe066',
-            backgroundColor: '#143d6b',
+            fill: '#39ff14',
+            backgroundColor: '#001600',
             padding: { left: 26, right: 26, top: 12, bottom: 12 }
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-        playButton.on('pointerover', () => playButton.setStyle({ fill: '#ffffff', backgroundColor: '#1f5f9e' }));
-        playButton.on('pointerout', () => playButton.setStyle({ fill: '#ffe066', backgroundColor: '#143d6b' }));
+        playButton.on('pointerover', () => playButton.setStyle({ fill: '#7dff6a', backgroundColor: '#003300' }));
+        playButton.on('pointerout', () => playButton.setStyle({ fill: '#39ff14', backgroundColor: '#001600' }));
         playButton.on('pointerdown', () => this.scene.start('GameScene'));
     }
 }
